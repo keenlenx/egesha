@@ -49,12 +49,6 @@ const Parking = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [swipeButtonKey, setSwipeButtonKey] = useState(Date.now());
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
-  const [isSelectingLocation, setIsSelectingLocation] = useState(false);
-  const [selectedPinLocation, setSelectedPinLocation] = useState<{
-    latitude: number;
-    longitude: number;
-    address?: string;
-  } | null>(null);
   
   const phoneInputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -163,17 +157,11 @@ const Parking = () => {
           let longitude = CONFIG.MAP.DEFAULT_REGION.longitude;
 
           try {
-            const manualLocation = locationService.getManualLocation();
-            const useManualLocation = manualLocation && Date.now() - manualLocation.timestamp < 300000;
-            
-            if (useManualLocation && manualLocation) {
-              latitude = manualLocation.latitude;
-              longitude = manualLocation.longitude;
-              console.log('📍 [PAYMENT] Using manual location');
-            } else if (location) {
+            // Always use current location for parking sessions
+            if (location) {
               latitude = location.coords.latitude;
               longitude = location.coords.longitude;
-              console.log('📍 [PAYMENT] Using current location');
+              console.log('📍 [PAYMENT] Using current location for session');
             }
 
             // Get address
@@ -379,14 +367,7 @@ const Parking = () => {
       } else {
         // Start parking
         console.log('🚗 [PARKING] Starting parking for:', activeCar);
-        const manualLocation = locationService.getManualLocation();
-        const useManualLocation = manualLocation && Date.now() - manualLocation.timestamp < 300000;
-        
-        if (useManualLocation) {
-          parking.startParking(activeCar, manualLocation.latitude, manualLocation.longitude);
-        } else {
-          parking.startParking(activeCar);
-        }
+        parking.startParking(activeCar);
       }
     } catch (error) {
       console.error('❌ [PARKING] Error toggling parking:', error);
@@ -564,39 +545,6 @@ const Parking = () => {
       locationService.stopWatchingLocation().catch(console.error);
     };
   }, [parking.isParking]);
-
-  // Handle map press for pin selection
-  const handleMapPress = async (event: any) => {
-    if (!isSelectingLocation) return;
-    
-    const { coordinate } = event.nativeEvent;
-    
-    try {
-      const address = await locationService.getAddressFromCoords(
-        coordinate.latitude,
-        coordinate.longitude
-      );
-      
-      const locationData = {
-        latitude: coordinate.latitude,
-        longitude: coordinate.longitude,
-        address: address || 'Selected location',
-      };
-      
-      setSelectedPinLocation(locationData);
-      
-      locationService.setManualLocation(locationData);
-      
-      Alert.alert(
-        'Location Selected',
-        `Parking location set to: ${address || 'Selected coordinates'}`,
-        [{ text: 'OK', onPress: () => setIsSelectingLocation(false) }]
-      );
-    } catch (error) {
-      console.error('❌ [MAP] Error getting address:', error);
-      Alert.alert('Error', 'Unable to get address for selected location. Using coordinates only.');
-    }
-  };
 
   // Calculate drawer height with keyboard
   const getDrawerHeight = () => {
@@ -842,17 +790,16 @@ const Parking = () => {
             longitudeDelta: 0.005,
           }}
           customMapStyle={mapStyle}
-          showsUserLocation={!isSelectingLocation}
-          followsUserLocation={parking.isParking && !selectedPinLocation}
+          showsUserLocation={true}
+          followsUserLocation={parking.isParking}
           loadingEnabled={true}
           zoomEnabled={true}
-          scrollEnabled={!isSelectingLocation}
+          scrollEnabled={true}
           rotateEnabled={false}
           pitchEnabled={false}
-          onPress={handleMapPress}
         >
           {/* User marker */}
-          {location && !isSelectingLocation && (
+          {location && (
             <Marker
               coordinate={{
                 latitude: location.coords.latitude,
@@ -875,69 +822,8 @@ const Parking = () => {
               </View>
             </Marker>
           )}
-          
-          {/* Selected pin marker */}
-          {selectedPinLocation && (
-            <Marker
-              coordinate={{
-                latitude: selectedPinLocation.latitude,
-                longitude: selectedPinLocation.longitude,
-              }}
-              tracksViewChanges={false}
-            >
-              <View style={styles.pinMarkerContainer}>
-                <View style={styles.pinMarker}>
-                  <Ionicons name="pin" size={24} color={CONFIG.UI.COLORS.PRIMARY} />
-                </View>
-                <View style={styles.pinMarkerPulse} />
-              </View>
-            </Marker>
-          )}
-          
-          {/* Selection mode indicator */}
-          {isSelectingLocation && location && (
-            <Marker
-              coordinate={{
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-              }}
-              tracksViewChanges={false}
-            >
-              <View style={styles.selectionMarker}>
-                <Ionicons name="locate" size={28} color={CONFIG.UI.COLORS.SECONDARY} />
-                <Text style={styles.selectionText}>Tap to set location</Text>
-              </View>
-            </Marker>
-          )}
         </MapView>
       )}
-
-      {/* Location selection button */}
-      <TouchableOpacity
-        style={styles.locationSelectButton}
-        onPress={() => {
-          setIsSelectingLocation(!isSelectingLocation);
-          if (isSelectingLocation) {
-            setSelectedPinLocation(null);
-            locationService.clearManualLocation();
-            Alert.alert('Location Selection Cancelled', 'Manual location selection has been cancelled.');
-          } else {
-            Alert.alert('Select Location', 'Tap on the map to set your parking location.');
-          }
-        }}
-      >
-        <Ionicons
-          name={isSelectingLocation ? "close-circle" : "pin"}
-          size={22}
-          color={isSelectingLocation ? CONFIG.UI.COLORS.ERROR : CONFIG.UI.COLORS.PRIMARY}
-        />
-        <Text style={[
-          styles.locationSelectText,
-          { color: isSelectingLocation ? CONFIG.UI.COLORS.ERROR : CONFIG.UI.COLORS.PRIMARY }
-        ]}>
-          {isSelectingLocation ? 'Cancel' : 'Set Location'}
-        </Text>
-      </TouchableOpacity>
 
       {/* Status Card */}
       <View style={styles.statusContainer}>
@@ -1064,9 +950,9 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 30,
-    left: 20,
-    right: 20,
+    top: Platform.OS === 'ios' ? 50 : 5,
+    left: 10,
+    right: 60,
     backgroundColor: 'white',
     borderRadius: 16,
     padding: 16,
@@ -1075,6 +961,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
+    zIndex: 1,
   },
   statusHeader: {
     flexDirection: 'row',
@@ -1166,6 +1053,7 @@ const styles = StyleSheet.create({
     bottom: 20,
     left: 20,
     right: 20,
+    zIndex: 5,
   },
   sliderCard: {
     backgroundColor: 'white',
@@ -1212,6 +1100,7 @@ const styles = StyleSheet.create({
   paymentOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
+    zIndex: 100,
   },
   paymentBackdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -1527,71 +1416,6 @@ const styles = StyleSheet.create({
     backgroundColor: CONFIG.UI.COLORS.SECONDARY,
     opacity: 0.3,
     zIndex: -1,
-  },
-  locationSelectButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 120 : 100,
-    right: 20,
-    backgroundColor: 'white',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  locationSelectText: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  pinMarkerContainer: {
-    alignItems: 'center',
-  },
-  pinMarker: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: CONFIG.UI.COLORS.PRIMARY,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  pinMarkerPulse: {
-    position: 'absolute',
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: CONFIG.UI.COLORS.PRIMARY,
-    opacity: 0.2,
-    zIndex: -1,
-  },
-  selectionMarker: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    padding: 12,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  selectionText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: CONFIG.UI.COLORS.SECONDARY,
-    marginTop: 4,
   },
 });
 
