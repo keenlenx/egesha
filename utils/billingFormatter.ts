@@ -1,4 +1,4 @@
-import { ParkingSession } from '../services/storageService';
+import type { ParkingSession } from '../types/parking';
 import { formatTime } from './timeFormatter';
 
 export const formatSessionDate = (dateString: string): string => {
@@ -26,9 +26,9 @@ export const formatSessionDuration = (seconds: number): string => {
 
 export const getStatusColor = (status: ParkingSession['status']): string => {
   switch (status) {
-    case 'completed':
+    case 'success':
       return '#52c41a';
-    case 'pending':
+    case 'failed':
       return '#faad14';
     case 'cancelled':
       return '#ff3b30';
@@ -39,10 +39,10 @@ export const getStatusColor = (status: ParkingSession['status']): string => {
 
 export const getStatusLabel = (status: ParkingSession['status']): string => {
   switch (status) {
-    case 'completed':
+    case 'success':
       return 'Completed';
-    case 'pending':
-      return 'Pending';
+    case 'failed':
+      return 'Failed';
     case 'cancelled':
       return 'Cancelled';
     default:

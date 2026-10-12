@@ -7,7 +7,7 @@ export interface LocationData {
     latitude: number;
     longitude: number;
     altitude: number | null;
-    accuracy: number;
+    accuracy: number | null;
     altitudeAccuracy: number | null;
     heading: number | null;
     speed: number | null;
@@ -23,7 +23,7 @@ export interface SelectedLocation {
 }
 
 class LocationService {
-  private watchPositionId: string | null = null;
+  private watchPositionId: Location.LocationSubscription | null = null;
   private lastLocation: LocationData | null = null;
   private locationCallbacks: ((location: LocationData) => void)[] = [];
   private manualLocation: SelectedLocation | null = null;
@@ -69,8 +69,6 @@ class LocationService {
 
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        maximumAge: 30000, // Accept location up to 30 seconds old
-        timeout: 10000, // Timeout after 10 seconds
       });
 
       const locationData: LocationData = {
@@ -151,7 +149,7 @@ class LocationService {
         );
 
         // Store the subscription object directly
-        this.watchPositionId = subscription as any;
+        this.watchPositionId = subscription;
         this.isTracking = true;
       }
 
@@ -168,11 +166,7 @@ class LocationService {
   async stopWatchingLocation(): Promise<void> {
     try {
       if (this.watchPositionId) {
-        // The watchPositionId is actually a subscription object, not a string
-        // We need to call remove() on it
-        if (typeof this.watchPositionId === 'object' && this.watchPositionId.remove) {
-          this.watchPositionId.remove();
-        }
+        this.watchPositionId.remove();
         this.watchPositionId = null;
       }
       
@@ -190,7 +184,7 @@ class LocationService {
   async stopLocationUpdates(): Promise<void> {
     try {
       if (this.watchPositionId) {
-        // Simply clear the reference - Expo should handle cleanup
+        this.watchPositionId.remove();
         this.watchPositionId = null;
       }
       this.locationCallbacks = [];

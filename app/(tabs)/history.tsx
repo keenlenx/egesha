@@ -1,27 +1,25 @@
 // src/screens/History.tsx - FIXED VERSION
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  RefreshControl,
-  Alert,
-  ActivityIndicator,
-  StatusBar,
-  Platform,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useParking } from '../../hooks/useParking';
-import { ParkingSession } from '../../types/parking';
+import { useCallback, useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Platform,
+    RefreshControl,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { CONFIG } from '../../constants/config';
-import { formatTime } from '../../utils/timeFormatter';
+import { ParkingSession } from '../../types/parking';
 import { formatDate } from '../../utils/dateFormatter';
 import { parkingHistoryStorage } from '../../utils/parkingHistoryStorage';
+import { formatTime } from '../../utils/timeFormatter';
 
 const History = () => {
-  const { parkingSessions, loadSessions } = useParking();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [displaySessions, setDisplaySessions] = useState<ParkingSession[]>([]);
@@ -29,8 +27,6 @@ const History = () => {
   const loadHistory = useCallback(async () => {
     try {
       console.log('📂 [HISTORY] Loading history...');
-      setRefreshing(true);
-      
       // Load sessions directly from storage
       const sessions = await parkingHistoryStorage.getHistory();
       console.log(`📂 [HISTORY] Loaded ${sessions.length} sessions from storage`);
@@ -38,31 +34,37 @@ const History = () => {
       // Update display
       setDisplaySessions(sessions);
       
-      // Also update hook state
-      await loadSessions();
-      
     } catch (error) {
       console.error('❌ [HISTORY] Error loading sessions:', error);
       Alert.alert('Error', 'Failed to load parking history');
       setDisplaySessions([]);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadHistory();
+    } finally {
       setRefreshing(false);
     }
-  }, [loadSessions]);
+  }, [loadHistory]);
 
   // Initial load
   useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
+    let isActive = true;
+    parkingHistoryStorage.getHistory().then((sessions) => {
+      if (isActive) setDisplaySessions(sessions);
+    }).finally(() => {
+      if (isActive) setLoading(false);
+    });
 
-  // Listen for changes in parkingSessions
-  useEffect(() => {
-    if (parkingSessions && parkingSessions.length > 0) {
-      console.log(`📂 [HISTORY] Hook updated with ${parkingSessions.length} sessions`);
-      setDisplaySessions(parkingSessions);
-    }
-  }, [parkingSessions]);
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const getStatusStyles = (status: string) => {
     const statusLower = status.toLowerCase();
@@ -100,7 +102,7 @@ const History = () => {
     try {
       if (!timestamp) return 'Unknown date';
       return formatDate(new Date(timestamp));
-    } catch (error) {
+    } catch {
       return 'Invalid date';
     }
   };
@@ -115,14 +117,14 @@ const History = () => {
       };
       
       return `${formatTime(start)} - ${formatTime(end)}`;
-    } catch (error) {
+    } catch {
       return 'Time not available';
     }
   };
 
   const renderSession = ({ item, index }: { item: ParkingSession, index: number }) => {
     const status = getStatusStyles(item.status || 'unknown');
-    const carPlate = formatCarPlate(item.carNumberPlate || item.carPlate || '');
+    const carPlate = formatCarPlate(item.carNumberPlate || '');
     const location = formatLocation(item.location?.address);
     const cost = formatCost(item.cost || 0);
     const duration = item.duration || 0;
@@ -240,12 +242,12 @@ const History = () => {
       <FlatList
         data={displaySessions}
         renderItem={renderSession}
-        keyExtractor={(item) => item.id || `session-${Date.now()}-${Math.random()}`}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
-            onRefresh={loadHistory}
+            onRefresh={handleRefresh}
             colors={[CONFIG.UI.COLORS.PRIMARY]}
             tintColor={CONFIG.UI.COLORS.PRIMARY}
           />
@@ -257,7 +259,7 @@ const History = () => {
               <View style={styles.headerButtons}>
                 <TouchableOpacity 
                   style={styles.refreshButton}
-                  onPress={loadHistory}
+                  onPress={handleRefresh}
                 >
                   <Ionicons name="refresh" size={20} color={CONFIG.UI.COLORS.PRIMARY} />
                 </TouchableOpacity>
@@ -288,7 +290,7 @@ const History = () => {
                   Total spent: KES {displaySessions.reduce((sum, s) => sum + (s.cost || 0), 0)}
                 </Text>
                 <Text style={styles.statsSubText}>
-                  Last session: {formatSessionDate(displaySessions[0]?.startTime || Date.now())}
+                  Last session: {formatSessionDate(displaySessions[0]?.startTime ?? 0)}
                 </Text>
               </View>
             )}
@@ -320,7 +322,7 @@ const History = () => {
             
             <TouchableOpacity 
               style={[styles.tryAgainButton, { backgroundColor: CONFIG.UI.COLORS.PRIMARY, marginTop: 12 }]}
-              onPress={loadHistory}
+              onPress={handleRefresh}
             >
               <Text style={styles.tryAgainText}>Refresh</Text>
             </TouchableOpacity>
@@ -363,11 +365,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.05)',
   },
   headerTop: {
     flexDirection: 'row',
@@ -423,11 +421,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     flexDirection: 'row',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 3,
+    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.07)',
   },
   accentStrip: {
     width: 6,

@@ -1,38 +1,35 @@
 // src/screens/Parking.tsx - CLEANED UP VERSION
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  KeyboardAvoidingView,
-  Modal,
-  PanResponder,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  Keyboard,
-  ScrollView,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker } from 'react-native-maps';
-import SwipeButton from 'rn-swipe-button';
+import { useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Dimensions,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
+import ParkingMap from '../../components/ParkingMap';
+import SwipeAction from '../../components/SwipeAction';
 import { CONFIG } from '../../constants/config';
-import { mapStyle } from '../../constants/mapStyle';
 import { useParking } from '../../hooks/useParking';
 import { usePayment } from '../../hooks/usePayment';
+import { LocationData, locationService } from '../../services/locationService';
 import { carStorage } from '../../utils/carStorage';
-import { locationService, LocationData } from '../../services/locationService';
 import { formatPhoneNumber } from '../../utils/phoneFormatter';
 import { formatTime } from '../../utils/timeFormatter';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SCREEN_WIDTH = Dimensions.get('window').width;
 const DRAWER_MIN_HEIGHT = 140;
 const DRAWER_MAX_HEIGHT = SCREEN_HEIGHT * 0.85;
 const KEYBOARD_OFFSET = Platform.OS === 'ios' ? 180 : 100;
@@ -41,18 +38,16 @@ const Parking = () => {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(true);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
-  const [drawerHeight, setDrawerHeight] = useState(new Animated.Value(DRAWER_MIN_HEIGHT));
+  const [drawerHeight] = useState(new Animated.Value(DRAWER_MIN_HEIGHT));
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
   const [activeCar, setActiveCar] = useState<string | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [swipeButtonKey, setSwipeButtonKey] = useState(Date.now());
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   
   const phoneInputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView>(null);
-  const mapRef = useRef<MapView>(null);
   const lastLocationUpdateRef = useRef<number>(0);
 
   const parking = useParking();
@@ -75,11 +70,6 @@ const Parking = () => {
     
     return () => clearInterval(intervalId);
   }, []);
-
-  // Reset swipe button
-  useEffect(() => {
-    setSwipeButtonKey(Date.now());
-  }, [parking.isParking]);
 
   // Payment status handler
   useEffect(() => {
@@ -303,16 +293,6 @@ const Parking = () => {
   }, [isDrawerExpanded]);
 
   // Pan responder for drawer
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => false,
-      onPanResponderGrant: () => {
-        toggleDrawer();
-      },
-    })
-  ).current;
-
   // Toggle drawer expansion
   const toggleDrawer = () => {
     if (paymentModalVisible && !payment.isProcessingPayment) {
@@ -613,7 +593,6 @@ const Parking = () => {
                 <TouchableOpacity
                   style={styles.drawerHandleContainer}
                   onPress={toggleDrawer}
-                  {...panResponder.panHandlers}
                 >
                   <View style={styles.drawerHandle} />
                 </TouchableOpacity>
@@ -774,56 +753,7 @@ const Parking = () => {
       </Modal>
       
       {/* Map */}
-      {loadingLocation ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={CONFIG.UI.COLORS.PRIMARY} />
-          <Text style={styles.loadingText}>Finding your location...</Text>
-        </View>
-      ) : (
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          initialRegion={{
-            latitude: location?.coords.latitude || CONFIG.MAP.DEFAULT_REGION.latitude,
-            longitude: location?.coords.longitude || CONFIG.MAP.DEFAULT_REGION.longitude,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          }}
-          customMapStyle={mapStyle}
-          showsUserLocation={true}
-          followsUserLocation={parking.isParking}
-          loadingEnabled={true}
-          zoomEnabled={true}
-          scrollEnabled={true}
-          rotateEnabled={false}
-          pitchEnabled={false}
-        >
-          {/* User marker */}
-          {location && (
-            <Marker
-              coordinate={{
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-              }}
-              tracksViewChanges={false}
-            >
-              <View style={styles.markerContainer}>
-                <View style={[
-                  styles.markerPin,
-                  parking.isParking && styles.markerPinActive,
-                ]}>
-                  <Ionicons
-                    name={parking.isParking ? "car-sport" : "car"}
-                    size={parking.isParking ? 20 : 18}
-                    color="white"
-                  />
-                </View>
-                {parking.isParking && <View style={styles.markerPulse} />}
-              </View>
-            </Marker>
-          )}
-        </MapView>
-      )}
+      <ParkingMap loading={loadingLocation} location={location} isParking={parking.isParking} />
 
       {/* Status Card */}
       <View style={styles.statusContainer}>
@@ -881,38 +811,13 @@ const Parking = () => {
             </Text>
           </View>
           
-          <SwipeButton
-            key={`swipe_${swipeButtonKey}_${parking.isParking ? 'active' : 'inactive'}_${activeCar || 'no-car'}`}
-            height={60}
-            width={SCREEN_WIDTH - 80}
-            railBackgroundColor="#F3F4F6"
-            railFillBackgroundColor={parking.isParking ? CONFIG.UI.COLORS.SECONDARY : CONFIG.UI.COLORS.PRIMARY}
-            railFillBorderColor="transparent"
-            railBorderColor="transparent"
-            thumbIconBackgroundColor="white"
-            thumbIconBorderColor="transparent"
-            thumbIconComponent={() => (
-              <View style={styles.thumbIcon}>
-                <Ionicons
-                  name={parking.isParking ? "stop" : "play"}
-                  size={26}
-                  color={parking.isParking ? CONFIG.UI.COLORS.SECONDARY : CONFIG.UI.COLORS.PRIMARY}
-                />
-              </View>
-            )}
-            title={parking.isParking ? "← Slide to stop parking" : "Slide to start parking →"}
-            titleColor={parking.isParking ? CONFIG.UI.COLORS.SECONDARY : CONFIG.UI.COLORS.PRIMARY}
-            titleFontSize={16}
-            titleStyles={{ fontWeight: '700', letterSpacing: 0.5 }}
-            onSwipeSuccess={toggleParking}
-            railStyles={{ borderRadius: 30 }}
-            thumbIconStyles={{ borderRadius: 28 }}
-            containerStyles={{ borderRadius: 30 }}
-            disableResetOnTap={true}
+          <SwipeAction
+            key={`swipe_${parking.isParking ? 'active' : 'inactive'}_${activeCar || 'no-car'}`}
+            icon={parking.isParking ? 'stop' : 'play'}
+            label={parking.isParking ? 'Slide to stop parking' : 'Slide to start parking'}
+            color={parking.isParking ? CONFIG.UI.COLORS.SECONDARY : CONFIG.UI.COLORS.PRIMARY}
+            onSwipe={toggleParking}
             disabled={paymentModalVisible || isProcessing || payment.isProcessingPayment}
-            shouldResetAfterSuccess={false}
-            resetAfterSuccessAnimDelay={0}
-            resetAfterSuccessAnimDuration={0}
           />
           
           <Text style={styles.sliderHint}>
@@ -956,11 +861,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
     zIndex: 1,
   },
   statusHeader: {
@@ -981,10 +882,7 @@ const styles = StyleSheet.create({
     backgroundColor: CONFIG.UI.COLORS.PRIMARY,
   },
   statusPulse: {
-    shadowColor: CONFIG.UI.COLORS.SECONDARY,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
+    boxShadow: `0px 0px 8px ${CONFIG.UI.COLORS.SECONDARY}CC`,
   },
   statusText: {
     fontSize: 14,
@@ -1059,11 +957,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
   },
   sliderHeader: {
     flexDirection: 'row',
@@ -1078,19 +972,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     letterSpacing: 0.5,
   },
-  thumbIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
   sliderHint: {
     fontSize: 12,
     color: '#6B7280',
@@ -1103,7 +984,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   paymentBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   paymentDrawer: {
@@ -1113,11 +994,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 10,
+    boxShadow: '0px -4px 12px rgba(0, 0, 0, 0.15)',
     overflow: 'hidden',
   },
   successContainer: {
@@ -1372,11 +1249,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: CONFIG.UI.COLORS.PRIMARY,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: `0px 2px 4px ${CONFIG.UI.COLORS.PRIMARY}33`,
   },
   payButtonDisabled: {
     backgroundColor: '#9CA3AF',
@@ -1399,11 +1272,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 3,
     borderColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.3)',
   },
   markerPinActive: {
     backgroundColor: CONFIG.UI.COLORS.SECONDARY,

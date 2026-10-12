@@ -1,6 +1,6 @@
-import axios, { AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CONFIG, API_ENDPOINTS, ERROR_MESSAGES } from '../constants/config';
+import axios, { AxiosError } from 'axios';
+import { API_ENDPOINTS, CONFIG, ERROR_MESSAGES } from '../constants/config';
 
 export interface PaymentInitiationRequest {
   phone: string;
@@ -61,6 +61,8 @@ export interface HistoryResponse {
   error?: string;
 }
 
+type PaymentApiError = { error?: string; message?: string };
+
 class PaymentService {
   private baseURL: string;
   private timeout: number;
@@ -91,7 +93,7 @@ class PaymentService {
     } catch (error) {
       console.error('Payment initiation error:', error);
       
-      const axiosError = error as AxiosError;
+      const axiosError = error as AxiosError<PaymentApiError>;
       let errorMessage = ERROR_MESSAGES.PAYMENT_INITIATION_FAILED;
 
       if (axiosError.response) {
@@ -132,7 +134,7 @@ class PaymentService {
     } catch (error) {
       console.error('Payment status check error:', error);
       
-      const axiosError = error as AxiosError;
+      const axiosError = error as AxiosError<PaymentApiError>;
       let errorMessage = ERROR_MESSAGES.SERVER_ERROR;
 
       if (axiosError.response) {

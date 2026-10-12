@@ -12,10 +12,10 @@ export const globalStyles = StyleSheet.create({
 
   // Map Styles
   map: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   mapFallback: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#e8f4f8',
     justifyContent: 'center',
     alignItems: 'center',
@@ -100,8 +100,8 @@ export const globalStyles = StyleSheet.create({
     left: 20,
     right: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: CONFIG.UI.BORDER_RADIUS,
-    padding: CONFIG.UI.SPACING,
+    borderRadius: CONFIG.UI.BORDER_RADIUS.MD,
+    padding: CONFIG.UI.SPACING.MD,
     ...CONFIG.UI.SHADOW,
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.05)',
@@ -125,13 +125,7 @@ export const globalStyles = StyleSheet.create({
     backgroundColor: CONFIG.UI.COLORS.TEXT_TERTIARY,
   },
   statusPulse: {
-    animationKeyframes: {
-      '0%': { opacity: 1, transform: [{ scale: 1 }] },
-      '50%': { opacity: 0.5, transform: [{ scale: 1.2 }] },
-      '100%': { opacity: 1, transform: [{ scale: 1 }] },
-    },
-    animationDuration: '2000ms',
-    animationIterationCount: 'infinite',
+    opacity: 0.7,
   },
   statusText: {
     fontSize: 16,
@@ -263,8 +257,8 @@ export const globalStyles = StyleSheet.create({
   },
   modalContent: {
     margin: 20,
-    borderRadius: CONFIG.UI.BORDER_RADIUS,
-    padding: CONFIG.UI.SPACING,
+    borderRadius: CONFIG.UI.BORDER_RADIUS.MD,
+    padding: CONFIG.UI.SPACING.MD,
     borderWidth: 1,
     minWidth: width * 0.8,
     maxWidth: width * 0.9,
@@ -313,8 +307,8 @@ export const globalStyles = StyleSheet.create({
   },
   summarySectionPayment: {
     backgroundColor: CONFIG.UI.COLORS.SURFACE,
-    borderRadius: CONFIG.UI.BORDER_RADIUS,
-    padding: CONFIG.UI.SPACING,
+    borderRadius: CONFIG.UI.BORDER_RADIUS.MD,
+    padding: CONFIG.UI.SPACING.MD,
     marginBottom: 24,
   },
   summaryRow: {
@@ -396,7 +390,7 @@ export const globalStyles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: CONFIG.UI.COLORS.BORDER,
-    borderRadius: CONFIG.UI.BORDER_RADIUS,
+    borderRadius: CONFIG.UI.BORDER_RADIUS.MD,
     backgroundColor: CONFIG.UI.COLORS.SURFACE,
     overflow: 'hidden',
   },
@@ -438,7 +432,7 @@ export const globalStyles = StyleSheet.create({
   payButton: {
     flexDirection: 'row',
     backgroundColor: CONFIG.UI.COLORS.PRIMARY,
-    borderRadius: CONFIG.UI.BORDER_RADIUS,
+    borderRadius: CONFIG.UI.BORDER_RADIUS.MD,
     paddingVertical: 16,
     justifyContent: 'center',
     alignItems: 'center',

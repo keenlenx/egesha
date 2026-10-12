@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { carStorage } from '../../utils/carStorage';
+import { useEffect, useState } from 'react';
+import {
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { CONFIG } from '../../constants/config';
+import { carStorage } from '../../utils/carStorage';
 
 const MyCars = () => {
   const [numberPlate, setNumberPlate] = useState('');
@@ -20,13 +20,15 @@ const MyCars = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    loadActiveCar();
-  }, []);
+    let isActive = true;
+    carStorage.getActiveCar().then((car) => {
+      if (isActive) setActiveCar(car);
+    });
 
-  const loadActiveCar = async () => {
-    const car = await carStorage.getActiveCar();
-    setActiveCar(car);
-  };
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const handleSaveCar = async () => {
     if (!numberPlate.trim()) {
@@ -177,11 +179,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: CONFIG.UI.COLORS.PRIMARY,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
   },
   currentCarHeader: {
     flexDirection: 'row',
@@ -219,11 +217,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
   },
   formTitle: {
     fontSize: 20,
@@ -257,11 +251,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: CONFIG.UI.COLORS.PRIMARY,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: `0px 2px 4px ${CONFIG.UI.COLORS.PRIMARY}33`,
   },
   saveButtonDisabled: {
     backgroundColor: '#D1D5DB',

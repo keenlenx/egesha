@@ -1,5 +1,5 @@
 // src/hooks/usePayment.ts - FIXED VERSION
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { CONFIG, ERROR_MESSAGES } from '../constants/config';
 import { paymentService, PaymentStatus } from '../services/paymentService';
@@ -29,8 +29,8 @@ export const usePayment = (): UsePaymentReturn => {
   const [error, setError] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup function
   const cleanup = useCallback(() => {

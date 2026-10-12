@@ -1,19 +1,18 @@
 // src/screens/DeveloperSettings.tsx - FIXED VERSION
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  ScrollView,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { parkingHistoryStorage } from '../utils/parkingHistoryStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { useParking } from '../hooks/useParking';
 import { locationService } from '../services/locationService';
 import { carStorage } from '../utils/carStorage';
+import { parkingHistoryStorage } from '../utils/parkingHistoryStorage';
 
 const DeveloperSettings = () => {
   const parking = useParking();
@@ -301,10 +300,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
     elevation: 2,
   },
   sectionTitle: {

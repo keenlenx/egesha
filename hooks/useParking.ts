@@ -1,7 +1,7 @@
 // src/hooks/useParking.ts
-import { useState, useEffect, useCallback } from 'react';
-import { parkingHistoryStorage } from '../utils/parkingHistoryStorage';
+import { useCallback, useEffect, useState } from 'react';
 import { ParkingSession } from '../types/parking';
+import { parkingHistoryStorage } from '../utils/parkingHistoryStorage';
 
 export const useParking = () => {
   const [isParking, setIsParking] = useState(false);
@@ -14,7 +14,7 @@ export const useParking = () => {
     longitude: number;
   } | null>(null);
   const [parkingSessions, setParkingSessions] = useState<ParkingSession[]>([]);
-  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
+  const [timerInterval, setTimerInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
   // Load parking sessions on mount
   useEffect(() => {
